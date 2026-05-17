@@ -97,14 +97,12 @@ async def get_email_for_website(context, url):
         
     return email_found
 
-async def main():
-    input_file = 'results.csv'
-    output_file = 'results_with_emails.csv'
-    
+async def run_email_enrichment(filepath):
     rows = []
     try:
-        with open(input_file, 'r', encoding='utf-8') as f:
-            expected_fieldnames = ['business_name', 'phone', 'website', 'address', 'source_url', 'search_query', 'scraped_at']
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
+            # New fieldnames match exactly what is in data_store.py
+            expected_fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at']
             reader = csv.DictReader(f, fieldnames=expected_fieldnames)
             
             for row in reader:
@@ -113,45 +111,42 @@ async def main():
                     continue
                 rows.append(row)
                 
-            fieldnames = expected_fieldnames + ['email']
+            fieldnames = expected_fieldnames
     except FileNotFoundError:
-        logging.error(f"Could not find {input_file}. Please run the scraper first.")
+        logging.error(f"Could not find {filepath}. Please ensure Stage 1 ran successfully.")
         return
 
-    logging.info(f"Found {len(rows)} businesses to process.")
+    logging.info(f"Starting Stage 2: Deep Website Email Crawling for {len(rows)} businesses.")
     
     async with async_playwright() as p:
-        # Launch headlessly to make it quiet and fast
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
         
-        # Block unnecessary resources (images, fonts, media) to speed up loading
         await context.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "media", "font", "stylesheet"] else route.continue_())
 
         for i, row in enumerate(rows):
             website = row.get('website', '')
-            if website:
+            # If the email is already found, or website is empty, skip
+            if website and not row.get('business_email'):
                 logging.info(f"[{i+1}/{len(rows)}] Processing: {row.get('business_name')}")
                 email = await get_email_for_website(context, website)
-                row['email'] = email if email else ''
+                row['business_email'] = email if email else ''
                 if email:
                     logging.info(f"--> Found email: {email}")
                 else:
                     logging.info("--> No email found.")
-            else:
-                row['email'] = ''
+            elif not website:
+                row['business_email'] = ''
                 
         await browser.close()
         
-    # Write the new data out to a separate CSV
-    with open(output_file, 'w', newline='', encoding='utf-8') as f:
+    # Write the enriched data back to the same CSV file
+    with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
         
-    logging.info(f"Done! Saved results with emails to {output_file}")
+    logging.info(f"Done! Pipeline fully completed. Enriched results saved to {filepath}")
 
-if __name__ == '__main__':
-    asyncio.run(main())

@@ -122,6 +122,7 @@ class SearchFlow:
             # Add metadata for tracking
             result['source_url'] = business['href']
             result['search_query'] = query
+            result['business_email'] = ''
             
             # Save the result immediately to the CSV/JSON file
             self.data_store.append_result(result)

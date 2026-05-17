@@ -9,7 +9,7 @@ class DataStore:
         self.format = format
         self.append = append
         self.seen_urls = set()
-        self.fieldnames = ['business_name', 'phone', 'website', 'address', 'source_url', 'search_query', 'scraped_at']
+        self.fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at']
         
         self._init_file()
         
@@ -17,7 +17,7 @@ class DataStore:
         mode = 'a' if self.append else 'w'
         if self.format == 'csv':
             file_exists = os.path.isfile(self.filepath)
-            with open(self.filepath, mode, newline='', encoding='utf-8') as f:
+            with open(self.filepath, mode, newline='', encoding='utf-8-sig') as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
                 if not file_exists or not self.append:
                     writer.writeheader()
@@ -37,7 +37,7 @@ class DataStore:
         result['scraped_at'] = datetime.now().isoformat()
         
         if self.format == 'csv':
-            with open(self.filepath, 'a', newline='', encoding='utf-8') as f:
+            with open(self.filepath, 'a', newline='', encoding='utf-8-sig') as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
                 filtered_result = {k: v for k, v in result.items() if k in self.fieldnames}
                 writer.writerow(filtered_result)

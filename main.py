@@ -59,7 +59,12 @@ async def run_scraper(args):
         
     # Clean up and close browser
     await browser_manager.close()
-    print("Scraping completed.")
+    print("Stage 1 (Google Maps Extraction) completed.")
+    
+    # Run Stage 2: Email enrichment
+    from email_extractor import run_email_enrichment
+    await run_email_enrichment(config.get('output.filename', 'results.csv'))
+    print("Pipeline finished successfully.")
 
 def main():
     """

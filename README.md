@@ -133,9 +133,9 @@ browser:
 
 LCA Scraping operates in two consecutive stages.
 
-### 🔹 Stage 1: Scrape Google Maps Leads
+### 🔹 Unified Execution Pipeline
 
-Execute the primary script to crawl Google Maps and gather initial company details. Settings are loaded from `config.yaml`, but can be dynamically overridden using command-line arguments:
+Execute the primary script to crawl Google Maps and automatically enrich leads with emails. Settings are loaded from `config.yaml`, but can be dynamically overridden using command-line arguments:
 
 ```bash
 # Option A: Run using configurations defined in config.yaml
@@ -152,19 +152,9 @@ python3 main.py --queries "Pizza in Rome" "Boutique in Milan" --max-results 15 -
 *   `--format`: Choose between saving in `csv` or `json`.
 *   `--headless` / `--no-headless`: Toggle background browser execution.
 
-**Output Created**: [`results.csv`](file:///Users/usr/lcascraping/results.csv) (containing `business_name`, `phone`, `website`, `address`, `source_url`, `search_query`, `scraped_at`).
+**Output Created**: [`results.csv`](file:///Users/usr/lcascraping/results.csv) (containing `business_name`, `business_email`, `phone`, `website`, `address`, `search_query`, `scraped_at`).
 
----
 
-### 🔹 Stage 2: Deep Website Email Extraction
-
-Once Stage 1 is complete, run the email extractor script. It reads `results.csv`, crawls every company's official homepage and contact portals, and outputs an enriched lead sheet:
-
-```bash
-python3 email_extractor.py
-```
-
-**Output Created**: [`results_with_emails.csv`](file:///Users/usr/lcascraping/results_with_emails.csv) (which appends a verified `email` field to the extracted columns).
 
 ---
 
@@ -172,10 +162,10 @@ python3 email_extractor.py
 
 The final output is stored in a clean table format:
 
-| Business Name | Phone | Website | Address | Email |
-| :--- | :--- | :--- | :--- | :--- |
-| **Abogados Madrid Sol** | `+34 910 111 222` | `https://abogadosmadrid.es` | `Calle Mayor, 12, Madrid, Spain` | `contacto@abogadosmadrid.es` |
-| **Bufete del Prado** | `+34 911 333 444` | `https://pradoabogados.com` | `Paseo del Prado, 24, Madrid, Spain` | `info@pradoabogados.com` |
+| Business Name | Business Email | Phone | Website | Address | Search Query | Scraped At |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Abogados Madrid Sol** | `contacto@abogadosmadrid.es` | `+34 910 111 222` | `https://abogadosmadrid.es` | `Calle Mayor, 12, Madrid, Spain` | `abogados laborales en madrid` | `2026-05-17T13:51:57` |
+| **Bufete del Prado** | `info@pradoabogados.com` | `+34 911 333 444` | `https://pradoabogados.com` | `Paseo del Prado, 24, Madrid, Spain` | `abogados laborales en madrid` | `2026-05-17T13:52:01` |
 
 ---
 
