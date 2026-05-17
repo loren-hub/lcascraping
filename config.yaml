@@ -1,0 +1,47 @@
+# --- SEARCH SETTINGS ---
+search:
+  # Add as many search terms as you like to this list
+  queries:
+    - "dentista en vallecas"
+  
+  # How many businesses to extract PER query
+  max_results_per_query: 20
+  
+  # How many times to "scroll down" to load more results before starting extraction
+  # Increase this if you need to reach businesses further down the list
+  scroll_steps_limit: 60
+
+# --- ANTI-DETECTION & TIMING ---
+delays:
+  # Random delay bounds (in seconds) between major actions (like clicking)
+  min_action_delay: 0.5
+  max_action_delay: 3.0
+  
+  # Wait time after each scroll step to allow Google Maps to load new results
+  scroll_pause: 1.5
+
+# --- BROWSER ENGINE SETTINGS ---
+browser:
+  # Set to 'true' to run without a visible window (faster, but harder to debug)
+  headless: false
+  
+  # Simulated screen size
+  viewport:
+    width: 1280
+    height: 900
+    
+  # Language and Timezone settings (helps avoid detection)
+  locale: "en-US"
+  timezone: "America/New_York"
+
+# --- OUTPUT SETTINGS ---
+output:
+  # Supported: "csv" or "json"
+  format: "csv"
+  
+  # The filename where results will be saved
+  filename: "results.csv"
+
+anti_detection:
+  # Enable stealth mode to hide the fact that this is an automated browser
+  use_stealth: true
