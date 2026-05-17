@@ -72,18 +72,4 @@ class WebsiteExtractor:
         # requirement is phone, website, address.
         
         return result
-
-if __name__ == '__main__':
-    print("\nℹ️  LCA Scraping: website_extractor.py")
-    print("=" * 55)
-    print("This file is a utility library containing the WebsiteExtractor class.")
-    print("It is used internally by main.py to extract business details (name, website,")
-    print("phone, address) from the raw HTML of Google Maps detail panels.")
-    print("\n🚀 TO RUN THE CRAWLER PIPELINE:")
-    print("-" * 55)
-    print("The pipeline has been merged! Simply run the main script to extract")
-    print("Google Maps leads and immediately crawl their websites for emails.")
-    print("👉  python3 main.py")
-    print("=" * 55)
-    print("\n")
-
+        
