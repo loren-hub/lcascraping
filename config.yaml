@@ -2,14 +2,14 @@
 search:
   # Add as many search terms as you like to this list
   queries:
-    - "dentista en vallecas"
+    - "abogados laborales en madrid"
   
   # How many businesses to extract PER query
-  max_results_per_query: 20
+  max_results_per_query: 30
   
   # How many times to "scroll down" to load more results before starting extraction
   # Increase this if you need to reach businesses further down the list
-  scroll_steps_limit: 60
+  scroll_steps_limit: 90
 
 # --- ANTI-DETECTION & TIMING ---
 delays:
