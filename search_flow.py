@@ -58,6 +58,10 @@ class SearchFlow:
 
     def _is_franchise(self, name, href=''):
         """Returns True if the business matches the franchise/chain blocklist."""
+        # Check if filtering is disabled in config.yaml
+        if not self.config.get('filtering.enabled', True):
+            return False
+
         name_lower = (name or '').lower()
         for kw in self._name_blocklist:
             if kw in name_lower:

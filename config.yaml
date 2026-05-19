@@ -2,7 +2,7 @@
 search:
   # Add as many search terms as you like to this list
   queries:
-    - "dentista en albacete"
+    - "inmobiliaria en albacete"
   
   # How many businesses to extract PER query
   max_results_per_query: 50
@@ -54,31 +54,16 @@ anti_detection:
   use_stealth: true
 
 # --- FILTERING SETTINGS ---
-# Filter out big businesses, franchises, and chains to keep only local businesses
+# Filter out big businesses, franchises, and chains to keep only local businesses.
 filtering:
-  # Business names containing any of these keywords (case-insensitive) will be skipped
-  franchise_blocklist:
-    - "vitaldent"
-    - "adeslas"
-    - "sanitas"
-    - "caser"
-    - "asisa"
-    - "mapfre"
-    - "quironsalud"
-    - "quirónsalud"
-    - "dentix"
-    - "dentalia"
-    - "unidental"
-    - "vivanta"
-
-  # Websites whose domain contains any of these keywords will be skipped
-  domain_blocklist:
-    - "vitaldent.com"
-    - "adeslasdental.es"
-    - "sanitasdental.es"
-    - "clinicasdentalescaser.es"
-    - "asisadental.es"
-    - "dentix.es"
+  # ============================================================================
+  # HOW TO DISABLE THE BLOCKLIST:
+  # Set 'enabled' below to 'false' to disable all franchise and domain filtering.
+  # This is useful for testing or when searching for business categories like
+  # real estate agencies where local business names might contain keywords
+  # like "inmobiliaria".
+  # ============================================================================
+  enabled: true
 
 # --- EMAIL SANITIZATION ---
 # Rules to detect and discard fake, placeholder, or internal emails
@@ -118,5 +103,5 @@ email_outreach:
       template_name: "dentistas"
     # Fallback template if no keyword matches
     - keyword: "default"
-      subject: "Propuesta de colaboración"
+      subject: "Propuesta de collaboration"
       template_name: "default"

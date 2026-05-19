@@ -16,12 +16,27 @@ EXCLUDED_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.css', '.js'
 
 
 def _load_config():
-    """Loads config.yaml for sanitization and filtering settings."""
+    """Loads config.yaml and merges blocklist.yaml if it exists."""
+    import os
+    config = {}
     try:
         with open('config.yaml', 'r') as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
     except Exception:
-        return {}
+        pass
+
+    try:
+        if os.path.exists('blocklist.yaml'):
+            with open('blocklist.yaml', 'r') as f:
+                blocklist = yaml.safe_load(f) or {}
+                if isinstance(blocklist, dict):
+                    if 'filtering' not in config:
+                        config['filtering'] = {}
+                    for k, v in blocklist.items():
+                        config['filtering'][k] = v
+    except Exception:
+        pass
+    return config
 
 
 def _get_fake_email_patterns(config):
@@ -37,6 +52,8 @@ def _get_fake_email_patterns(config):
 
 def _get_domain_blocklist(config):
     """Returns domains to skip during email extraction (franchises)."""
+    if not config.get('filtering', {}).get('enabled', True):
+        return []
     return [d.lower() for d in config.get('filtering', {}).get('domain_blocklist', [])]
 
 

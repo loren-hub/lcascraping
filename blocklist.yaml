@@ -1,0 +1,27 @@
+# ==============================================================================
+# FRANCHISE & CHAIN BLOCKLISTS
+# ==============================================================================
+# This list only filters out major healthcare/dental franchises, which avoids
+# accidentally filtering out local independent businesses (like local realtors).
+
+franchise_blocklist:
+  - "vitaldent"
+  - "adeslas"
+  - "sanitas"
+  - "caser"
+  - "asisa"
+  - "mapfre"
+  - "quironsalud"
+  - "quirónsalud"
+  - "dentix"
+  - "dentalia"
+  - "unidental"
+  - "vivanta"
+
+domain_blocklist:
+  - "vitaldent.com"
+  - "adeslasdental.es"
+  - "sanitasdental.es"
+  - "clinicasdentalescaser.es"
+  - "asisadental.es"
+  - "dentix.es"
