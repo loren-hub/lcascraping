@@ -9,7 +9,7 @@ class DataStore:
         self.format = format
         self.append = append
         self.seen_urls = set()
-        self.fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at']
+        self.fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at', 'email_sent_at']
         
         self._init_file()
         

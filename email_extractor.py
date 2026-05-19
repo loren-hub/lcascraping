@@ -1,17 +1,65 @@
 import csv
 import re
 import asyncio
-from urllib.parse import urljoin
+import yaml
+from urllib.parse import urljoin, urlparse
 from playwright.async_api import async_playwright
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Regex to find standard email patterns
 EMAIL_REGEX = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
 
 # Exclude common image/file extensions that might accidentally match the regex
 EXCLUDED_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.css', '.js')
+
+
+def _load_config():
+    """Loads config.yaml for sanitization and filtering settings."""
+    try:
+        with open('config.yaml', 'r') as f:
+            return yaml.safe_load(f)
+    except Exception:
+        return {}
+
+
+def _get_fake_email_patterns(config):
+    """Returns a list of lowercase patterns that identify fake/placeholder emails."""
+    defaults = [
+        'tu@email', 'your@email', 'info@example', 'test@test',
+        'email@email', 'correo@correo', '@sentry', '@wixpress',
+        '@example.com', 'noreply@', 'no-reply@', 'donotreply@'
+    ]
+    patterns = config.get('sanitization', {}).get('fake_email_patterns', defaults)
+    return [p.lower() for p in patterns]
+
+
+def _get_domain_blocklist(config):
+    """Returns domains to skip during email extraction (franchises)."""
+    return [d.lower() for d in config.get('filtering', {}).get('domain_blocklist', [])]
+
+
+def _is_fake_email(email, fake_patterns):
+    """Returns True if the email matches any fake/placeholder pattern."""
+    email_lower = email.lower()
+    for pattern in fake_patterns:
+        if pattern in email_lower:
+            return True
+    return False
+
+
+def _is_blocked_website(url, domain_blocklist):
+    """Returns True if the website domain is in the blocklist."""
+    try:
+        domain = urlparse(url).netloc.lower()
+        for blocked in domain_blocklist:
+            if blocked in domain:
+                return True
+    except Exception:
+        pass
+    return False
+
 
 def extract_emails_from_html(html):
     """Scans raw HTML for email addresses and cleans them."""
@@ -43,10 +91,13 @@ async def find_contact_link(page):
         pass
     return None
 
-async def get_email_for_website(context, url):
-    """Visits a website and its contact page to find exactly one email."""
+async def get_email_for_website(context, url, render_wait=1.0, fake_patterns=None):
+    """Visits a website and its contact page to find exactly one valid email."""
     if not url or not url.startswith('http'):
         return None
+        
+    if fake_patterns is None:
+        fake_patterns = []
         
     page = await context.new_page()
     email_found = None
@@ -55,7 +106,7 @@ async def get_email_for_website(context, url):
         # Step 1: Check the homepage
         logging.info(f"Visiting {url}")
         await page.goto(url, wait_until='domcontentloaded', timeout=15000)
-        await asyncio.sleep(2) # Give it a moment to render JS text
+        await asyncio.sleep(render_wait) # Configurable JS render wait
         
         html = await page.content()
         emails = extract_emails_from_html(html)
@@ -72,6 +123,9 @@ async def get_email_for_website(context, url):
             except Exception:
                 continue
                 
+        # Filter out fake emails before picking one
+        emails = [e for e in emails if not _is_fake_email(e, fake_patterns)]
+                
         if emails:
             # Return the first valid email to ensure we only get ONE per website
             email_found = emails[0]
@@ -83,10 +137,11 @@ async def get_email_for_website(context, url):
                 contact_url = urljoin(url, contact_href)
                 logging.info(f"No email on homepage. Checking contact page: {contact_url}")
                 await page.goto(contact_url, wait_until='domcontentloaded', timeout=15000)
-                await asyncio.sleep(2)
+                await asyncio.sleep(render_wait)
                 
                 html = await page.content()
                 emails = extract_emails_from_html(html)
+                emails = [e for e in emails if not _is_fake_email(e, fake_patterns)]
                 if emails:
                     email_found = emails[0]
                     
@@ -98,11 +153,17 @@ async def get_email_for_website(context, url):
     return email_found
 
 async def run_email_enrichment(filepath):
+    config = _load_config()
+    fake_patterns = _get_fake_email_patterns(config)
+    domain_blocklist = _get_domain_blocklist(config)
+    remove_empty = config.get('sanitization', {}).get('remove_rows_without_email', True)
+    render_wait = config.get('delays', {}).get('email_page_render_wait', 1.0)
+
     rows = []
     try:
         with open(filepath, 'r', encoding='utf-8-sig') as f:
             # New fieldnames match exactly what is in data_store.py
-            expected_fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at']
+            expected_fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at', 'email_sent_at']
             reader = csv.DictReader(f, fieldnames=expected_fieldnames)
             
             for row in reader:
@@ -128,10 +189,17 @@ async def run_email_enrichment(filepath):
 
         for i, row in enumerate(rows):
             website = row.get('website', '')
+            
+            # Skip franchise/chain websites
+            if website and _is_blocked_website(website, domain_blocklist):
+                logging.info(f"[{i+1}/{len(rows)}] Skipping franchise website: {row.get('business_name')}")
+                row['business_email'] = ''
+                continue
+            
             # If the email is already found, or website is empty, skip
             if website and not row.get('business_email'):
                 logging.info(f"[{i+1}/{len(rows)}] Processing: {row.get('business_name')}")
-                email = await get_email_for_website(context, website)
+                email = await get_email_for_website(context, website, render_wait, fake_patterns)
                 row['business_email'] = email if email else ''
                 if email:
                     logging.info(f"--> Found email: {email}")
@@ -141,6 +209,22 @@ async def run_email_enrichment(filepath):
                 row['business_email'] = ''
                 
         await browser.close()
+    
+    # --- SANITIZATION PASS ---
+    # Re-check all emails against fake patterns (catches pre-existing data too)
+    for row in rows:
+        email = row.get('business_email', '')
+        if email and _is_fake_email(email, fake_patterns):
+            logging.info(f"Sanitized fake email '{email}' for {row.get('business_name')}")
+            row['business_email'] = ''
+    
+    # Remove rows without a valid email if configured
+    if remove_empty:
+        original_count = len(rows)
+        rows = [row for row in rows if row.get('business_email')]
+        removed = original_count - len(rows)
+        if removed > 0:
+            logging.info(f"Removed {removed} rows with no valid email ({len(rows)} remaining).")
         
     # Write the enriched data back to the same CSV file
     with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:

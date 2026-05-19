@@ -2,28 +2,35 @@
 search:
   # Add as many search terms as you like to this list
   queries:
-    - "abogados laborales en madrid"
+    - "dentista en albacete"
   
   # How many businesses to extract PER query
-  max_results_per_query: 30
+  max_results_per_query: 50
   
   # How many times to "scroll down" to load more results before starting extraction
   # Increase this if you need to reach businesses further down the list
-  scroll_steps_limit: 90
+  scroll_steps_limit: 200
 
 # --- ANTI-DETECTION & TIMING ---
+# Delays are kept short but randomized to mimic fast human browsing
 delays:
   # Random delay bounds (in seconds) between major actions (like clicking)
-  min_action_delay: 0.5
-  max_action_delay: 3.0
+  min_action_delay: 0.3
+  max_action_delay: 1.5
   
   # Wait time after each scroll step to allow Google Maps to load new results
-  scroll_pause: 1.5
+  scroll_pause: 1.0
+
+  # Seconds to wait for a business page to render before extracting data
+  page_load_buffer: 1.0
+
+  # Seconds to wait for a website to render JS content during email extraction
+  email_page_render_wait: 1.0
 
 # --- BROWSER ENGINE SETTINGS ---
 browser:
   # Set to 'true' to run without a visible window (faster, but harder to debug)
-  headless: false
+  headless: true
   
   # Simulated screen size
   viewport:
@@ -45,3 +52,71 @@ output:
 anti_detection:
   # Enable stealth mode to hide the fact that this is an automated browser
   use_stealth: true
+
+# --- FILTERING SETTINGS ---
+# Filter out big businesses, franchises, and chains to keep only local businesses
+filtering:
+  # Business names containing any of these keywords (case-insensitive) will be skipped
+  franchise_blocklist:
+    - "vitaldent"
+    - "adeslas"
+    - "sanitas"
+    - "caser"
+    - "asisa"
+    - "mapfre"
+    - "quironsalud"
+    - "quirónsalud"
+    - "dentix"
+    - "dentalia"
+    - "unidental"
+    - "vivanta"
+
+  # Websites whose domain contains any of these keywords will be skipped
+  domain_blocklist:
+    - "vitaldent.com"
+    - "adeslasdental.es"
+    - "sanitasdental.es"
+    - "clinicasdentalescaser.es"
+    - "asisadental.es"
+    - "dentix.es"
+
+# --- EMAIL SANITIZATION ---
+# Rules to detect and discard fake, placeholder, or internal emails
+sanitization:
+  # Emails matching any of these patterns (case-insensitive) will be treated as invalid
+  fake_email_patterns:
+    - "tu@email"
+    - "your@email"
+    - "info@example"
+    - "test@test"
+    - "email@email"
+    - "correo@correo"
+    - "nombre@"
+    - "user@"
+    - "admin@example"
+    - "@sentry"
+    - "@wixpress"
+    - "@example.com"
+    - "noreply@"
+    - "no-reply@"
+    - "donotreply@"
+
+  # If true, rows with no valid email found after extraction will be removed from the output
+  remove_rows_without_email: true
+
+# --- EMAIL OUTREACH SETTINGS ---
+email_outreach:
+  sender_email: "contact@lcatechnologyconsulting.com"
+  
+  # Map keywords from the search_query to specific templates
+  templates:
+    - keyword: "abogado"
+      subject: "Mejora la captación de clientes para tu despacho"
+      template_name: "abogados"
+    - keyword: "dentista"
+      subject: "Atrae más pacientes a tu clínica dental"
+      template_name: "dentistas"
+    # Fallback template if no keyword matches
+    - keyword: "default"
+      subject: "Propuesta de colaboración"
+      template_name: "default"

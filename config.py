@@ -1,8 +1,10 @@
 import yaml
 import os
+from dotenv import load_dotenv
 
 class Config:
     def __init__(self, config_path='config.yaml'):
+        load_dotenv()
         with open(config_path, 'r') as f:
             self.settings = yaml.safe_load(f)
             
