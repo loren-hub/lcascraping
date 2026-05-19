@@ -4,7 +4,7 @@
 [![Playwright](https://img.shields.io/badge/playwright-v1.40.0+-green.svg?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/python/)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg?style=for-the-badge)](https://github.com/loren-hub/lcascraping/blob/main/LICENSE)
 
-A premium, asynchronous, two-stage scraping pipeline engineered to extract comprehensive business leads from Google Maps and perform deep crawling of target websites to retrieve contact emails and official channels. It features state-of-the-art human emulation and anti-detection engines to bypass firewalls and captchas smoothly.
+A premium, asynchronous, multi-stage scraping pipeline engineered to extract comprehensive business leads from Google Maps and perform deep crawling of target websites to retrieve contact emails and official channels. It features state-of-the-art human emulation, incremental virtualization bypasses, automated filtering, and advanced data sanitization.
 
 ---
 
@@ -16,13 +16,20 @@ A premium, asynchronous, two-stage scraping pipeline engineered to extract compr
     *   **Dynamic Fingerprinting**: Selects from a curated pool of real browser User-Agents.
     *   **Human Mouse Movement & Scrolling**: Emulates curved mouse paths and randomized scrolling speeds to mimic human engagement.
 *   **🤖 Automated Google Maps Extraction (Stage 1)**:
+    *   **DOM Virtualization Bypass**: Google Maps dynamically recycles DOM elements as you scroll, leaving only ~10 items rendered at any point. The pipeline bypasses this constraint by incrementally scanning and locking in-view business links during each scroll step.
     *   **Auto Consent Bypass**: Automatically handles and rejects Google's intrusive cookie/consent walls.
-    *   **Smart Infinite Scroll**: Continuously loads Google Maps results with termination conditions when feed limits are reached.
-    *   **Data Parsing**: Extracts business names, verified telephone numbers, addresses, and homepage URLs in real-time.
+    *   **Direct-Navigation Detail Scraping**: Instead of relying on flakey elements or stale references, the pipeline processes businesses by navigating directly to their specific Google Maps detail URLs.
+*   **🏢 Automated Franchise & Chain Filtering**:
+    *   **Dynamic Blocklisting**: Automatically skips large chains, healthcare giants, and corporate franchises (e.g., *Vitaldent, Adeslas, Sanitas, Mapfre*).
+    *   **Decoupled Blocklist Configurations**: Large blocklists are stored cleanly in a standalone [`blocklist.yaml`](file:///Users/usr/lcascraping/blocklist.yaml) file, separating raw lists from main operations config.
+    *   **Category Toggles**: Easily enable or disable filtering in [`config.yaml`](file:///Users/usr/lcascraping/config.yaml) using the `filtering.enabled` toggle.
 *   **📧 Deep Contact & Email Crawler (Stage 2)**:
     *   **Two-Tier Search**: Explores target homepages, follows contact/about subpages (`/contact`, `/contacto`, `/about`, `/nosotros`), and extracts valid professional emails.
     *   **Performance Optimization**: Automatically drops bandwidth-heavy resources (images, video/media, custom fonts, stylesheets) during crawl, accelerating execution speed by **up to 80%** while saving bandwidth.
     *   **Incremental Data Persistence**: Saves results immediately, protecting long-running scrapers from sudden crashes.
+*   **🧹 Email Sanitization & Lead Purification**:
+    *   **Placeholder Filter**: Automatically rejects dummy/placeholder emails (e.g., `tu@email.com`, `user@domain`, `admin@example`, `@sentry`).
+    *   **Lead Sanitation**: Configurable to automatically drop rows that contain no valid email, outputting a high-quality list of hot outreach targets.
 
 ---
 
@@ -32,20 +39,20 @@ The workflow is cleanly split into two asynchronous stages:
 
 ```mermaid
 graph TD
-    A[Start Scraper: main.py] --> B[Load config.yaml & CLI Overrides]
+    A[Start Scraper: main.py] --> B[Load config.yaml & blocklist.yaml]
     B --> C[Launch Stealth Playwright Instance]
     C --> D[Stage 1: Google Maps Search]
     D --> E[Bypass Consent Wall & Scroll Feed]
-    E --> F[Extract Business Names, Phones, Web & Addresses]
-    F --> G[Save to results.csv]
-    G --> H[Stage 2: email_extractor.py]
-    H --> I[Filter businesses with websites]
-    I --> J[Launch Optimized Playwright Crawler]
-    J --> K[Block Images/Stylesheets for Speed]
+    E --> F[Collect In-View Links Incrementally - Bypasses DOM Recycling]
+    F --> G[Navigate Directly to detail page & Extract Phones/Web/Addresses]
+    G --> H[Save to results.csv]
+    H --> I[Stage 2: email_extractor.py]
+    I --> J[Filter out non-website or Blocklisted franchises]
+    J --> K[Launch Speed-Optimized Playwright Crawler]
     K --> L[Search homepage & follow Contact Links]
-    L --> M[Extract Professional Emails]
-    M --> N[Export enriched dataset to results_with_emails.csv]
-    N --> O[Pipeline Complete]
+    L --> M[Extract Professional Emails & Sanitize Fake Patterns]
+    M --> N[Drop records lacking valid emails if configured]
+    N --> O[Pipeline Complete - Clean enriched dataset in results.csv]
 ```
 
 ---
@@ -55,16 +62,17 @@ graph TD
 Feel free to browse through the core project files:
 
 *   **⚡ Orchestration & Flows**:
-    *   [`main.py`](file:///Users/usr/lcascraping/main.py) — The main orchestrator; parses CLI arguments and runs the Stage 1 scraper.
-    *   [`search_flow.py`](file:///Users/usr/lcascraping/search_flow.py) — Handles the search interaction, cookie consent bypass, feed scrolling, and target clicking.
+    *   [`main.py`](file:///Users/usr/lcascraping/main.py) — The main orchestrator; parses CLI arguments and runs the Stage 1 scraper and Stage 2 enrichment.
+    *   [`search_flow.py`](file:///Users/usr/lcascraping/search_flow.py) — Handles Maps search navigation, consent bypass, incremental scroll-based collection, and business details extraction.
 *   **🛠️ Extraction & Evasion Engines**:
     *   [`anti_detection.py`](file:///Users/usr/lcascraping/anti_detection.py) — Contains stealth JS hooks, curved mouse movement simulation, and slow typing emulations.
     *   [`browser_manager.py`](file:///Users/usr/lcascraping/browser_manager.py) — Manages Playwright page setups, viewports, locales, and custom User-Agent mapping.
     *   [`website_extractor.py`](file:///Users/usr/lcascraping/website_extractor.py) — Uses Beautiful Soup to parse structured JSON-LD data and fallback elements from maps.
-    *   [`email_extractor.py`](file:///Users/usr/lcascraping/email_extractor.py) — Enriches scraped leads by recursively crawling homepages and contact pages for emails with advanced network interceptors.
+    *   [`email_extractor.py`](file:///Users/usr/lcascraping/email_extractor.py) — Enriches scraped leads by recursively crawling homepages and contact pages for emails with advanced network interceptors, domain blocklisting, and lead sanitization.
 *   **⚙️ Config & Core Utilities**:
-    *   [`config.yaml`](file:///Users/usr/lcascraping/config.yaml) — Clean, comprehensive configuration file for search parameters, browser engines, and anti-detection delays.
-    *   [`config.py`](file:///Users/usr/lcascraping/config.py) — Config loader and interface manager.
+    *   [`config.yaml`](file:///Users/usr/lcascraping/config.yaml) — Clean, comprehensive configuration file for search parameters, delays, viewport specs, and lead sanitization patterns.
+    *   [`blocklist.yaml`](file:///Users/usr/lcascraping/blocklist.yaml) — Standalone file containing lists of blocklisted corporate names and franchise domains.
+    *   [`config.py`](file:///Users/usr/lcascraping/config.py) — Config loader; loads config and dynamically merges blocklist properties if present.
     *   [`data_store.py`](file:///Users/usr/lcascraping/data_store.py) — Handles real-time thread-safe persistence for CSV/JSON files.
     *   [`utils.py`](file:///Users/usr/lcascraping/utils.py) — Logging configurations, CAPTCHA detectors, and query encoders.
 
@@ -101,30 +109,62 @@ playwright install chromium
 
 ## ⚙️ Configuration
 
-All major settings are loaded from [`config.yaml`](file:///Users/usr/lcascraping/config.yaml). Here is an overview of the key configuration sections:
+### Core Configuration: [`config.yaml`](file:///Users/usr/lcascraping/config.yaml)
+All major settings are loaded from `config.yaml`. Here is an overview of the key configuration sections:
 
 ```yaml
 # --- SEARCH SETTINGS ---
 search:
   queries:
-    - "abogados laborales en madrid"
-  max_results_per_query: 30       # Total results to fetch per query
-  scroll_steps_limit: 90          # Infinite scrolling depth limit
+    - "dentista en albacete"
+  max_results_per_query: 50       # Total results to fetch per query
+  scroll_steps_limit: 200         # Infinite scrolling depth limit
 
 # --- ANTI-DETECTION & TIMING ---
 delays:
-  min_action_delay: 0.5           # Min cooldown between clicks/actions (secs)
-  max_action_delay: 3.0           # Max cooldown between clicks/actions (secs)
-  scroll_pause: 1.5               # Pause after scrolling to let elements load
+  min_action_delay: 0.3           # Min cooldown between actions (secs)
+  max_action_delay: 1.5           # Max cooldown between actions (secs)
+  scroll_pause: 1.0               # Wait time after each scroll step (secs)
+  page_load_buffer: 1.0           # Wait buffer for Maps details panel load (secs)
+  email_page_render_wait: 1.0     # Wait buffer for website js content render (secs)
 
 # --- BROWSER ENGINE SETTINGS ---
 browser:
-  headless: false                 # Run headlessly (set false to watch the browser work)
+  headless: true                  # Run headlessly (set false to watch the browser work)
   viewport:
     width: 1280
     height: 900
   locale: "en-US"
   timezone: "America/New_York"
+
+# --- FILTERING SETTINGS ---
+filtering:
+  enabled: true                   # Set to false to disable ALL franchise/domain filtering
+
+# --- EMAIL SANITIZATION ---
+sanitization:
+  fake_email_patterns:            # Discards emails containing these substrings
+    - "tu@email"
+    - "your@email"
+    - "info@example"
+    - "test@test"
+    - "@sentry"
+  remove_rows_without_email: true # If true, removes rows lacking valid emails from final output
+```
+
+### Franchise Configuration: [`blocklist.yaml`](file:///Users/usr/lcascraping/blocklist.yaml)
+To avoid cluttering the core settings, franchise names and corporate domains are listed inside `blocklist.yaml`:
+
+```yaml
+franchise_blocklist:
+  - "franchise_a"
+  - "franchise_b"
+  - "franchise_c"
+
+domain_blocklist:
+  - "domain_a"
+  - "domain_b"
+  - "domain_c"
 ```
 
 ---
@@ -142,7 +182,7 @@ Execute the primary script to crawl Google Maps and automatically enrich leads w
 python3 main.py
 
 # Option B: Run with CLI overrides (takes priority over config.yaml)
-python3 main.py --queries "Pizza in Rome" "Boutique in Milan" --max-results 15 --headless
+python3 main.py --queries "Inmobiliaria en Salamanca" --max-results 15 --headless
 ```
 
 #### CLI Override Arguments:
@@ -154,8 +194,6 @@ python3 main.py --queries "Pizza in Rome" "Boutique in Milan" --max-results 15 -
 
 **Output Created**: [`results.csv`](file:///Users/usr/lcascraping/results.csv) (containing `business_name`, `business_email`, `phone`, `website`, `address`, `search_query`, `scraped_at`).
 
-
-
 ---
 
 ## 📈 Data Output Sample
@@ -164,8 +202,8 @@ The final output is stored in a clean table format:
 
 | Business Name | Business Email | Phone | Website | Address | Search Query | Scraped At |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Abogados Madrid Sol** | `contacto@abogadosmadrid.es` | `+34 910 111 222` | `https://abogadosmadrid.es` | `Calle Mayor, 12, Madrid, Spain` | `abogados laborales en madrid` | `2026-05-17T13:51:57` |
-| **Bufete del Prado** | `info@pradoabogados.com` | `+34 911 333 444` | `https://pradoabogados.com` | `Paseo del Prado, 24, Madrid, Spain` | `abogados laborales en madrid` | `2026-05-17T13:52:01` |
+| **InmoHouse Albacete** | `email@address.com` | `900 600 600` | `http://www.domain.net/` | `Calle A, Spain` | `inmobiliaria en albacete` | `2026-05-19T20:31:08` |
+| **Api Luna Albacete** | `email@address.es` | `900 600 500` | `https://www.domain.es/` | `Paseo B, Spain` | `inmobiliaria en asturias` | `2026-05-19T20:31:48` |
 
 ---
 
