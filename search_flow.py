@@ -91,7 +91,7 @@ class SearchFlow:
             try:
                 href = await loc.get_attribute('href')
                 name = await loc.get_attribute('aria-label')
-                if href and href not in collected and href not in skipped_franchises and not self.data_store.has_url(href):
+                if href and href not in collected and href not in skipped_franchises and not self.data_store.has_url(href) and not self.data_store.has_business(name):
                     if self._is_franchise(name):
                         skipped_franchises.add(href)
                         print(f"  ⊘ Skipping franchise: {name}")

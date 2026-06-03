@@ -4,7 +4,7 @@
 [![Playwright](https://img.shields.io/badge/playwright-v1.40.0+-green.svg?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/python/)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg?style=for-the-badge)](https://github.com/loren-hub/lcascraping/blob/main/LICENSE)
 
-A premium, asynchronous, multi-stage scraping pipeline engineered to extract comprehensive business leads from Google Maps and perform deep crawling of target websites to retrieve contact emails and official channels. It features state-of-the-art human emulation, incremental virtualization bypasses, automated filtering, and advanced data sanitization.
+A premium, asynchronous, multi-stage scraping pipeline engineered to extract comprehensive business leads from Google Maps, perform deep crawling of target websites to retrieve contact emails, and orchestrate fully automated template-based outreach. It features state-of-the-art human emulation, incremental virtualization bypasses, automated filtering, advanced data sanitization, and professional campaign execution with safe testing controls.
 
 ---
 
@@ -30,29 +30,35 @@ A premium, asynchronous, multi-stage scraping pipeline engineered to extract com
 *   **🧹 Email Sanitization & Lead Purification**:
     *   **Placeholder Filter**: Automatically rejects dummy/placeholder emails (e.g., `tu@email.com`, `user@domain`, `admin@example`, `@sentry`).
     *   **Lead Sanitation**: Configurable to automatically drop rows that contain no valid email, outputting a high-quality list of hot outreach targets.
+*   **✉️ Automated & Dynamic Email Outreach (Stage 3)**:
+    *   **Resend API Integration**: Utilizes Resend's high-deliverability platform to dispatch beautiful, responsive HTML outreach emails.
+    *   **Keyword-Based Template Mapping**: Automatically maps different search query categories to specialized email templates (e.g., *abogados.html*, *dentistas.html*, or a fallback *default.html*).
+    *   **Lead Personalization**: Dynamically injects context parameters such as `{{business_name}}` into the template content.
+    *   **Idempotency & Safety**: Tracks email dispatch logs via the `email_sent_at` column in the CSV data to guarantee that no lead receives duplicate emails on subsequent runs.
+    *   **Dry Run Simulation**: Allows you to simulate campaigns and verify matching templates and subject lines without consuming Resend API quota or sending real emails.
 
 ---
 
 ## 📐 Pipeline Architecture
 
-The workflow is cleanly split into two asynchronous stages:
+The workflow is cleanly split into three asynchronous stages:
 
 ```mermaid
 graph TD
-    A[Start Scraper: main.py] --> B[Load config.yaml & blocklist.yaml]
+    A[Start Pipeline: main.py or standalone scripts] --> B[Load config.yaml & blocklist.yaml]
     B --> C[Launch Stealth Playwright Instance]
-    C --> D[Stage 1: Google Maps Search]
+    C --> D[Stage 1: scrape_leads.py / Maps Search]
     D --> E[Bypass Consent Wall & Scroll Feed]
-    E --> F[Collect In-View Links Incrementally - Bypasses DOM Recycling]
-    F --> G[Navigate Directly to detail page & Extract Phones/Web/Addresses]
-    G --> H[Save to results.csv]
-    H --> I[Stage 2: email_extractor.py]
-    I --> J[Filter out non-website or Blocklisted franchises]
-    J --> K[Launch Speed-Optimized Playwright Crawler]
-    K --> L[Search homepage & follow Contact Links]
-    L --> M[Extract Professional Emails & Sanitize Fake Patterns]
-    M --> N[Drop records lacking valid emails if configured]
-    N --> O[Pipeline Complete - Clean enriched dataset in results.csv]
+    E --> F[Collect In-View Links - Bypasses DOM Recycling]
+    F --> G[Extract details & Append to results.csv]
+    G --> H[Stage 2: enrich_emails.py / Deep Email Crawling]
+    H --> I[Filter out non-website or Blocklisted franchises]
+    I --> J[Launch Playwright Crawler]
+    J --> K[Search homepage & follow Contact Links]
+    K --> L[Extract Emails & Sanitize Fake Patterns]
+    L --> M[Sanitization Pass: sanitize_results.py]
+    M --> N[Prune duplicate rows, odd characters, and franchises]
+    N --> O[Stage 3: send_emails.py / outreach]
 ```
 
 ---
@@ -62,19 +68,26 @@ graph TD
 Feel free to browse through the core project files:
 
 *   **⚡ Orchestration & Flows**:
-    *   [`main.py`](file:///Users/usr/lcascraping/main.py) — The main orchestrator; parses CLI arguments and runs the Stage 1 scraper and Stage 2 enrichment.
+    *   [`main.py`](file:///Users/usr/lcascraping/main.py) — The master pipeline orchestrator; executes Stage 1 (lead scraping), Stage 2 (email enrichment), and the Sanitization pass sequentially.
+    *   [`scrape_leads.py`](file:///Users/usr/lcascraping/scrape_leads.py) — Standalone command-line utility for Stage 1 (Google Maps Scraping) that appends leads to the CSV.
+    *   [`enrich_emails.py`](file:///Users/usr/lcascraping/enrich_emails.py) — Standalone command-line utility for Stage 2 (Deep Website Email Crawling).
+    *   [`sanitize_results.py`](file:///Users/usr/lcascraping/sanitize_results.py) — Standalone data sanitization tool that deduplicates, prunes franchises, and strips odd characters.
+    *   [`send_emails.py`](file:///Users/usr/lcascraping/send_emails.py) — Standalone command-line utility to execute Stage 3 (Email Outreach) using verified Resend templates and customized target files.
     *   [`search_flow.py`](file:///Users/usr/lcascraping/search_flow.py) — Handles Maps search navigation, consent bypass, incremental scroll-based collection, and business details extraction.
 *   **🛠️ Extraction & Evasion Engines**:
     *   [`anti_detection.py`](file:///Users/usr/lcascraping/anti_detection.py) — Contains stealth JS hooks, curved mouse movement simulation, and slow typing emulations.
-    *   [`browser_manager.py`](file:///Users/usr/lcascraping/browser_manager.py) — Manages Playwright page setups, viewports, locales, and custom User-Agent mapping.
+    *   [`browser_manager.py`](file:///Users/usr/lcascraping/browser_manager.py) Manages Playwright page setups, viewports, locales, and custom User-Agent mapping.
     *   [`website_extractor.py`](file:///Users/usr/lcascraping/website_extractor.py) — Uses Beautiful Soup to parse structured JSON-LD data and fallback elements from maps.
     *   [`email_extractor.py`](file:///Users/usr/lcascraping/email_extractor.py) — Enriches scraped leads by recursively crawling homepages and contact pages for emails with advanced network interceptors, domain blocklisting, and lead sanitization.
+    *   [`email_sender.py`](file:///Users/usr/lcascraping/email_sender.py) — Handles template loading, template variable substitution, and dispatches outreach campaigns using the Resend API with safe execution paths.
 *   **⚙️ Config & Core Utilities**:
-    *   [`config.yaml`](file:///Users/usr/lcascraping/config.yaml) — Clean, comprehensive configuration file for search parameters, delays, viewport specs, and lead sanitization patterns.
+    *   [`config.yaml`](file:///Users/usr/lcascraping/config.yaml) — Clean, comprehensive configuration file for search parameters, delays, viewport specs, lead sanitization, and email outreach mappings.
     *   [`blocklist.yaml`](file:///Users/usr/lcascraping/blocklist.yaml) — Standalone file containing lists of blocklisted corporate names and franchise domains.
     *   [`config.py`](file:///Users/usr/lcascraping/config.py) — Config loader; loads config and dynamically merges blocklist properties if present.
     *   [`data_store.py`](file:///Users/usr/lcascraping/data_store.py) — Handles real-time thread-safe persistence for CSV/JSON files.
     *   [`utils.py`](file:///Users/usr/lcascraping/utils.py) — Logging configurations, CAPTCHA detectors, and query encoders.
+*   **✉️ Email Templates**:
+    *   [`templates/`](file:///Users/usr/lcascraping/templates) — Directory containing modular, responsive HTML outreach email templates (e.g., `abogados.html`, `dentistas.html`, `default.html`).
 
 ---
 
@@ -150,6 +163,23 @@ sanitization:
     - "test@test"
     - "@sentry"
   remove_rows_without_email: true # If true, removes rows lacking valid emails from final output
+
+# --- EMAIL OUTREACH ---
+email_outreach:
+  sender_email: "info.lcatechnologysolutions.com" # Your verified Resend sender domain
+  
+  # Define query-to-template keyword mappings
+  templates:
+    - keyword: "abogado"
+      subject: "Mejora la captación de clientes para tu despacho"
+      template_name: "abogados"
+    - keyword: "dentista"
+      subject: "Atrae más pacientes a tu clínica dental"
+      template_name: "dentistas"
+    # Fallback template if no keyword matches
+    - keyword: "default"
+      subject: "Propuesta de colaboración"
+      template_name: "default"
 ```
 
 ### Franchise Configuration: [`blocklist.yaml`](file:///Users/usr/lcascraping/blocklist.yaml)
@@ -171,28 +201,118 @@ domain_blocklist:
 
 ## 🚀 Usage
 
-LCA Scraping operates in two consecutive stages.
+The pipeline consists of modular stages that can be run end-to-end or as standalone tools.
 
-### 🔹 Unified Execution Pipeline
+### 🔹 Run Full Pipeline (`main.py`)
 
-Execute the primary script to crawl Google Maps and automatically enrich leads with emails. Settings are loaded from `config.yaml`, but can be dynamically overridden using command-line arguments:
+Execute the master orchestrator to run Stage 1 (Lead Extraction), Stage 2 (Email enrichment), and the Sanitization pass in sequence:
 
 ```bash
-# Option A: Run using configurations defined in config.yaml
+# Run pipeline using configurations defined in config.yaml
 python3 main.py
 
-# Option B: Run with CLI overrides (takes priority over config.yaml)
+# Run with CLI overrides (takes priority over config.yaml)
 python3 main.py --queries "Inmobiliaria en Salamanca" --max-results 15 --headless
+```
+
+---
+
+### 🔹 Run Stage 1: Google Maps Lead Scraper (`scrape_leads.py`)
+
+Extract business details (names, phones, websites, addresses) without running email crawling or sanitization. Leads are automatically appended to the output file:
+
+```bash
+python3 scrape_leads.py --queries "Dentista en Madrid" --max-results 20
 ```
 
 #### CLI Override Arguments:
 *   `--queries`: Supply one or more custom search terms (separated by spaces).
 *   `--max-results`: Set the maximum number of business results to extract per query.
-*   `--output`: Overwrite the output filename.
-*   `--format`: Choose between saving in `csv` or `json`.
+*   `--output`: Overwrite the output filename (defaults to `results.csv`).
+*   `--format`: Output format (`csv` or `json`).
 *   `--headless` / `--no-headless`: Toggle background browser execution.
 
-**Output Created**: [`results.csv`](file:///Users/usr/lcascraping/results.csv) (containing `business_name`, `business_email`, `phone`, `website`, `address`, `search_query`, `scraped_at`).
+---
+
+### 🔹 Run Stage 2: Deep Website Email Crawler (`enrich_emails.py`)
+
+Run deep email enrichment on websites of existing leads stored in `results.csv`:
+
+```bash
+python3 enrich_emails.py --output results.csv
+```
+
+---
+
+### 🔹 Run Lead Sanitization (`sanitize_results.py`)
+
+Clean results, remove franchise listings, strip odd control characters, and deduplicate entries:
+
+```bash
+python3 sanitize_results.py --input results.csv
+```
+
+---
+
+### 🔹 Stage 3: Standalone Email Outreach (`send_emails.py`)
+
+Execute the specialized script to launch email outreach campaigns. It processes the leads generated in the previous stages, maps queries to HTML templates, and safely dispatches messages:
+
+```bash
+# Option A: Dispatch outreach on the default results file defined in config.yaml
+python3 send_emails.py
+
+# Option B: Run a safe dry-run (simulation) on a custom results file
+python3 send_emails.py --output test_leads.csv --dry-run
+```
+
+#### CLI Arguments for `send_emails.py`:
+*   `--output`: Point to a specific lead CSV file (defaults to `output.filename` in `config.yaml` or `results.csv`).
+*   `--dry-run`: Runs the email stage in simulation mode (logs actions without sending actual emails or writing timestamps to CSV).
+
+---
+
+## 🛡️ Safe Testing & Validation Strategies
+
+Sending cold outreach in high volumes carries serious deliverability, validation, and programmatic risks. We strongly recommend testing the outreach flow using these safety strategies before initiating full campaigns.
+
+### 1. Dry Run Simulation (Highly Recommended)
+Before executing a campaign, run the pipeline with the `--dry-run` flag. This executes the entire email pipeline (loading results, filtering previously-contacted leads, matching search terms with templates, loading the HTML templates, and interpolating variables) without sending any real emails or altering your CSV file:
+
+```bash
+# Run outreach simulation on your current test_leads.csv
+python3 send_emails.py --output test_leads.csv --dry-run
+```
+
+*Expected output structure:*
+```text
+2026-05-29 12:54:59 - INFO - Starting Stage 3: Email Outreach for 1 businesses. (Dry Run: True)
+2026-05-29 12:54:59 - INFO - [DRY RUN] Would send email to: rlopez.canezsolutions@gmail.com using template 'dentistas'
+2026-05-29 12:54:59 - INFO - [DRY RUN] Subject: Campaña informativa
+```
+
+Verify that the matched templates and subjects align correctly with the search query used for each lead.
+
+### 2. Live Deliverability Verification (Single Lead Test)
+To verify that the connection with Resend works, HTML variables are properly rendered, and deliverability is high (i.e., not flagged by spam filters), perform a live single-lead test:
+
+1. Setup your Resend API key:
+   ```bash
+   export RESEND_API_KEY="re_your_api_key_here"
+   ```
+2. Create a clean test CSV file (e.g. `test_outreach.csv`) with just a single row pointing to your personal test email:
+   ```csv
+   business_name,business_email,phone,website,address,search_query,scraped_at,email_sent_at
+   My Test Business,your_personal_email@domain.com,+34600000000,https://mytestbusiness.com,Calle Falsa 123,dentista en albacete,2026-05-20T17:00:00,
+   ```
+3. Run the email outreach targeting the test file:
+   ```bash
+   python3 send_emails.py --output test_outreach.csv
+   ```
+4. Check your inbox and spam folder. Verify:
+   - Dynamic tag interpolation (e.g., is `{{business_name}}` replaced by `My Test Business`?).
+   - Visual responsiveness and layout of the HTML body.
+   - Idempotency check: Notice that the `email_sent_at` column in `test_outreach.csv` has now been populated with the sending timestamp. If you execute the command again, it will skip this lead.
 
 ---
 
@@ -200,10 +320,10 @@ python3 main.py --queries "Inmobiliaria en Salamanca" --max-results 15 --headles
 
 The final output is stored in a clean table format:
 
-| Business Name | Business Email | Phone | Website | Address | Search Query | Scraped At |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **InmoHouse Albacete** | `email@address.com` | `900 600 600` | `http://www.domain.net/` | `Calle A, Spain` | `inmobiliaria en albacete` | `2026-05-19T20:31:08` |
-| **Api Luna Albacete** | `email@address.es` | `900 600 500` | `https://www.domain.es/` | `Paseo B, Spain` | `inmobiliaria en asturias` | `2026-05-19T20:31:48` |
+| Business Name | Business Email | Phone | Website | Address | Search Query | Scraped At | Email Sent At |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **InmoHouse Albacete** | `email@address.com` | `900 600 600` | `http://www.domain.net/` | `Calle A, Spain` | `inmobiliaria en albacete` | `2026-05-19T20:31:08` | `2026-05-20T17:10:00.123456` |
+| **Api Luna Albacete** | `email@address.es` | `900 600 500` | `https://www.domain.es/` | `Paseo B, Spain` | `inmobiliaria en asturias` | `2026-05-19T20:31:48` | *Pending / Empty* |
 
 ---
 
