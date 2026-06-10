@@ -206,24 +206,38 @@ async def run_email_enrichment(filepath):
 
         for i, row in enumerate(rows):
             website = row.get('website', '')
+            modified = False
             
             # Skip franchise/chain websites
             if website and _is_blocked_website(website, domain_blocklist):
                 logging.info(f"[{i+1}/{len(rows)}] Skipping franchise website: {row.get('business_name')}")
-                row['business_email'] = ''
-                continue
+                if row.get('business_email') != '':
+                    row['business_email'] = ''
+                    modified = True
             
             # If the email is already found, or website is empty, skip
-            if website and not row.get('business_email'):
+            elif website and not row.get('business_email'):
                 logging.info(f"[{i+1}/{len(rows)}] Processing: {row.get('business_name')}")
                 email = await get_email_for_website(context, website, render_wait, fake_patterns)
                 row['business_email'] = email if email else ''
+                modified = True
                 if email:
                     logging.info(f"--> Found email: {email}")
                 else:
                     logging.info("--> No email found.")
-            elif not website:
+            elif not website and row.get('business_email') != '':
                 row['business_email'] = ''
+                modified = True
+                
+            # Write progress back to results file immediately if modified
+            if modified:
+                try:
+                    with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        writer.writeheader()
+                        writer.writerows(rows)
+                except Exception as e:
+                    logging.warning(f"Error saving live progress to {filepath}: {e}")
                 
         await browser.close()
     

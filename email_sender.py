@@ -8,52 +8,20 @@ from config import Config
 # Configure logging format and level
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def get_template_info(query, config):
-    """
-    Determines which email template to use based on the search query that fetched the business.
-    
-    It scans the configured templates list in 'config.yaml'. If a template's keyword (e.g., 'abogado') 
-    is found as a substring within the search query (case-insensitive), that template details 
-    (subject line, template file name) are returned. 
-    
-    If no specific keyword matches, it falls back to the template defined with the 'default' keyword.
-    
-    Args:
-        query (str): The search query used to find the business (e.g., 'dentista en albacete').
-        config (Config): The configuration manager instance.
-        
-    Returns:
-        dict or None: The dictionary containing the matched template info (subject, template_name, keyword),
-                      or None if no match and no default template is configured.
-    """
-    templates = config.get('email_outreach.templates', [])
-    
-    # 1. First Pass: Check for keyword matches (excluding the 'default' fallback)
-    for t in templates:
-        keyword = t.get('keyword', '')
-        if keyword and keyword.lower() in query.lower() and keyword.lower() != 'default':
-            return t
-    
-    # 2. Second Pass: Fallback to the default template
-    for t in templates:
-        if t.get('keyword') == 'default':
-            return t
-            
-    return None
 
 def load_html_template(template_name):
     """
-    Loads the contents of an HTML template file from the 'templates/' directory.
+    Loads the contents of an HTML template file from the root directory.
     
     Args:
-        template_name (str): The filename of the template (without the .html extension).
+        template_name (str): The filename of the template (including the .html extension).
         
     Returns:
         str or None: The HTML template string if found, otherwise None.
     """
-    # Locate the absolute templates directory relative to this script
+    # Locate the absolute root directory relative to this script
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(base_dir, 'templates', f'{template_name}.html')
+    path = os.path.join(base_dir, template_name)
     
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as f:
@@ -129,19 +97,14 @@ async def run_email_outreach(filepath, config, dry_run=False):
         business_name = row.get('business_name', '')
         query = row.get('search_query', '')
         
-        # Resolve which template matches the query category
-        template_info = get_template_info(query, config)
-        if not template_info:
-            logging.warning(f"No template mapped for query: '{query}'")
-            continue
-            
-        template_name = template_info.get('template_name')
-        subject = template_info.get('subject', 'Hello')
+        # Retrieve the global template configuration
+        template_filename = config.get('email_outreach.template_filename', 'template.html')
+        subject = config.get('email_outreach.subject', 'Propuesta de colaboración')
         
         # Load the HTML template string
-        html_content = load_html_template(template_name)
+        html_content = load_html_template(template_filename)
         if not html_content:
-            logging.error(f"Could not load HTML template for: '{template_name}'")
+            logging.error(f"Could not load HTML template for: '{template_filename}'")
             continue
             
         # Personalize template by replacing template variables

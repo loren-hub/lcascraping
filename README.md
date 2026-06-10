@@ -30,12 +30,6 @@ A premium, asynchronous, multi-stage scraping pipeline engineered to extract com
 *   **🧹 Email Sanitization & Lead Purification**:
     *   **Placeholder Filter**: Automatically rejects dummy/placeholder emails (e.g., `tu@email.com`, `user@domain`, `admin@example`, `@sentry`).
     *   **Lead Sanitation**: Configurable to automatically drop rows that contain no valid email, outputting a high-quality list of hot outreach targets.
-*   **✉️ Automated & Dynamic Email Outreach (Stage 3)**:
-    *   **Resend API Integration**: Utilizes Resend's high-deliverability platform to dispatch beautiful, responsive HTML outreach emails.
-    *   **Keyword-Based Template Mapping**: Automatically maps different search query categories to specialized email templates (e.g., *abogados.html*, *dentistas.html*, or a fallback *default.html*).
-    *   **Lead Personalization**: Dynamically injects context parameters such as `{{business_name}}` into the template content.
-    *   **Idempotency & Safety**: Tracks email dispatch logs via the `email_sent_at` column in the CSV data to guarantee that no lead receives duplicate emails on subsequent runs.
-    *   **Dry Run Simulation**: Allows you to simulate campaigns and verify matching templates and subject lines without consuming Resend API quota or sending real emails.
 
 ---
 
@@ -87,7 +81,7 @@ Feel free to browse through the core project files:
     *   [`data_store.py`](file:///Users/usr/lcascraping/data_store.py) — Handles real-time thread-safe persistence for CSV/JSON files.
     *   [`utils.py`](file:///Users/usr/lcascraping/utils.py) — Logging configurations, CAPTCHA detectors, and query encoders.
 *   **✉️ Email Templates**:
-    *   [`templates/`](file:///Users/usr/lcascraping/templates) — Directory containing modular, responsive HTML outreach email templates (e.g., `abogados.html`, `dentistas.html`, `default.html`).
+    *   [`templates/`](file:///Users/usr/lcascraping/templates) — Directory containing modular, responsive HTML outreach email templates (e.g., `default.html`).
 
 ---
 
@@ -168,18 +162,9 @@ sanitization:
 email_outreach:
   sender_email: "info.lcatechnologysolutions.com" # Your verified Resend sender domain
   
-  # Define query-to-template keyword mappings
-  templates:
-    - keyword: "abogado"
-      subject: "Mejora la captación de clientes para tu despacho"
-      template_name: "abogados"
-    - keyword: "dentista"
-      subject: "Atrae más pacientes a tu clínica dental"
-      template_name: "dentistas"
-    # Fallback template if no keyword matches
-    - keyword: "default"
-      subject: "Propuesta de colaboración"
-      template_name: "default"
+  # Global email settings for all businesses
+  subject: "Propuesta de colaboración"
+  template_name: "default"
 ```
 
 ### Franchise Configuration: [`blocklist.yaml`](file:///Users/usr/lcascraping/blocklist.yaml)
@@ -256,7 +241,7 @@ python3 sanitize_results.py --input results.csv
 
 ### 🔹 Stage 3: Standalone Email Outreach (`send_emails.py`)
 
-Execute the specialized script to launch email outreach campaigns. It processes the leads generated in the previous stages, maps queries to HTML templates, and safely dispatches messages:
+Execute the specialized script to launch email outreach campaigns. It processes the leads generated in the previous stages, loads the configured HTML template, and safely dispatches messages:
 
 ```bash
 # Option A: Dispatch outreach on the default results file defined in config.yaml
@@ -277,21 +262,19 @@ python3 send_emails.py --output test_leads.csv --dry-run
 Sending cold outreach in high volumes carries serious deliverability, validation, and programmatic risks. We strongly recommend testing the outreach flow using these safety strategies before initiating full campaigns.
 
 ### 1. Dry Run Simulation (Highly Recommended)
-Before executing a campaign, run the pipeline with the `--dry-run` flag. This executes the entire email pipeline (loading results, filtering previously-contacted leads, matching search terms with templates, loading the HTML templates, and interpolating variables) without sending any real emails or altering your CSV file:
+Before executing a campaign, run the pipeline with the `--dry-run` flag. This executes the entire email pipeline (loading results, filtering previously-contacted leads, loading the HTML template, and interpolating variables) without sending any real emails or altering your CSV file:
 
 ```bash
 # Run outreach simulation on your current test_leads.csv
 python3 send_emails.py --output test_leads.csv --dry-run
 ```
 
-*Expected output structure:*
-```text
 2026-05-29 12:54:59 - INFO - Starting Stage 3: Email Outreach for 1 businesses. (Dry Run: True)
-2026-05-29 12:54:59 - INFO - [DRY RUN] Would send email to: rlopez.canezsolutions@gmail.com using template 'dentistas'
-2026-05-29 12:54:59 - INFO - [DRY RUN] Subject: Campaña informativa
+2026-05-29 12:54:59 - INFO - [DRY RUN] Would send email to: rlopez.canezsolutions@gmail.com using template 'default'
+2026-05-29 12:54:59 - INFO - [DRY RUN] Subject: Propuesta de colaboración
 ```
 
-Verify that the matched templates and subjects align correctly with the search query used for each lead.
+Verify that the loaded template and subject align correctly with the configuration.
 
 ### 2. Live Deliverability Verification (Single Lead Test)
 To verify that the connection with Resend works, HTML variables are properly rendered, and deliverability is high (i.e., not flagged by spam filters), perform a live single-lead test:
