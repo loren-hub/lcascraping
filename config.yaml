@@ -107,8 +107,8 @@ sanitization:
 
 # --- EMAIL OUTREACH SETTINGS ---
 email_outreach:
-  sender_email: "info@contact.lcatechnologysolutions.com"
+  sender_email: "formacion@info.lcatechnologysolutions.com"
   
   # Global email settings for all businesses
-  subject: "Propuesta de colaboración"
+  subject: "Campaña informativa LCA"
   template_filename: "template.html"

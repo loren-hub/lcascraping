@@ -81,7 +81,7 @@ Feel free to browse through the core project files:
     *   [`data_store.py`](file:///Users/usr/lcascraping/data_store.py) — Handles real-time thread-safe persistence for CSV/JSON files.
     *   [`utils.py`](file:///Users/usr/lcascraping/utils.py) — Logging configurations, CAPTCHA detectors, and query encoders.
 *   **✉️ Email Templates**:
-    *   [`templates/`](file:///Users/usr/lcascraping/templates) — Directory containing modular, responsive HTML outreach email templates (e.g., `default.html`).
+    *   [`template.html`](file:///Users/usr/lcascraping/template.html) — Root HTML outreach template file used for all businesses.
 
 ---
 
@@ -163,8 +163,8 @@ email_outreach:
   sender_email: "info.lcatechnologysolutions.com" # Your verified Resend sender domain
   
   # Global email settings for all businesses
-  subject: "Propuesta de colaboración"
-  template_name: "default"
+  subject: "Campaña informativa LCA"
+  template_filename: "template.html"
 ```
 
 ### Franchise Configuration: [`blocklist.yaml`](file:///Users/usr/lcascraping/blocklist.yaml)
@@ -270,8 +270,8 @@ python3 send_emails.py --output test_leads.csv --dry-run
 ```
 
 2026-05-29 12:54:59 - INFO - Starting Stage 3: Email Outreach for 1 businesses. (Dry Run: True)
-2026-05-29 12:54:59 - INFO - [DRY RUN] Would send email to: rlopez.canezsolutions@gmail.com using template 'default'
-2026-05-29 12:54:59 - INFO - [DRY RUN] Subject: Propuesta de colaboración
+2026-05-29 12:54:59 - INFO - [DRY RUN] Would send email to: rlopez.canezsolutions@gmail.com using template 'template.html'
+2026-05-29 12:54:59 - INFO - [DRY RUN] Subject: Campaña informativa LCA
 ```
 
 Verify that the loaded template and subject align correctly with the configuration.

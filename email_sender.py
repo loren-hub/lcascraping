@@ -99,7 +99,7 @@ async def run_email_outreach(filepath, config, dry_run=False):
         
         # Retrieve the global template configuration
         template_filename = config.get('email_outreach.template_filename', 'template.html')
-        subject = config.get('email_outreach.subject', 'Propuesta de colaboración')
+        subject = config.get('email_outreach.subject', 'Campaña informativa LCA')
         
         # Load the HTML template string
         html_content = load_html_template(template_filename)
@@ -113,7 +113,7 @@ async def run_email_outreach(filepath, config, dry_run=False):
         
         # 4. Handle sending behavior based on Dry Run toggle
         if dry_run:
-            logging.info(f"[DRY RUN] Would send email to: {email} using template '{template_name}'")
+            logging.info(f"[DRY RUN] Would send email to: {email} using template '{template_filename}'")
             logging.info(f"[DRY RUN] Subject: {subject}")
         else:
             try:
