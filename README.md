@@ -165,6 +165,11 @@ email_outreach:
   # Global email settings for all businesses
   subject: "Campaña informativa LCA"
   template_filename: "template.html"
+
+  # Delay bounds between emails (in seconds) to mimic human behavior
+  delay_between_emails:
+    min: 5.0
+    max: 15.0
 ```
 
 ### Franchise Configuration: [`blocklist.yaml`](file:///Users/usr/lcascraping/blocklist.yaml)
@@ -241,7 +246,7 @@ python3 sanitize_results.py --input results.csv
 
 ### 🔹 Stage 3: Standalone Email Outreach (`send_emails.py`)
 
-Execute the specialized script to launch email outreach campaigns. It processes the leads generated in the previous stages, loads the configured HTML template, and safely dispatches messages:
+Execute the specialized script to launch email outreach campaigns. It processes the leads generated in the previous stages, loads the configured HTML template, and safely dispatches messages. It supports specifying a limit of emails to send per execution and introduces human-like randomized delays between emails to safely warm up the email address.
 
 ```bash
 # Option A: Dispatch outreach on the default results file defined in config.yaml
@@ -249,11 +254,15 @@ python3 send_emails.py
 
 # Option B: Run a safe dry-run (simulation) on a custom results file
 python3 send_emails.py --output test_leads.csv --dry-run
+
+# Option C: Send a maximum of 10 emails (with human timing delays in between)
+python3 send_emails.py --limit 10
 ```
 
 #### CLI Arguments for `send_emails.py`:
 *   `--output`: Point to a specific lead CSV file (defaults to `output.filename` in `config.yaml` or `results.csv`).
 *   `--dry-run`: Runs the email stage in simulation mode (logs actions without sending actual emails or writing timestamps to CSV).
+*   `--limit` / `-l`: Restricts the number of emails processed and sent in a single run (useful for gradual email warm-up).
 
 ---
 

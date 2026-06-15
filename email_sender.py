@@ -1,6 +1,8 @@
+import asyncio
 import csv
 import logging
 import os
+import random
 import resend
 from datetime import datetime
 from config import Config
@@ -29,7 +31,7 @@ def load_html_template(template_name):
             
     return None
 
-async def run_email_outreach(filepath, config, dry_run=False):
+async def run_email_outreach(filepath, config, dry_run=False, limit=None):
     """
     Orchestrates Stage 3: Email Outreach.
     
@@ -45,6 +47,7 @@ async def run_email_outreach(filepath, config, dry_run=False):
         filepath (str): Path to the CSV file containing the scraped leads.
         config (Config): The configuration manager instance.
         dry_run (bool): If True, logs the outreach action without sending real emails or writing to CSV.
+        limit (int, optional): Maximum number of emails to send in this execution.
     """
     # 1. Initialize Resend API client using the environment variable
     resend.api_key = os.getenv('RESEND_API_KEY')
@@ -82,7 +85,8 @@ async def run_email_outreach(filepath, config, dry_run=False):
         logging.error(f"Could not find lead file at {filepath}.")
         return
 
-    logging.info(f"Starting Stage 3: Email Outreach for {len(rows)} businesses. (Dry Run: {dry_run})")
+    limit_str = f", Limit: {limit}" if limit is not None else ""
+    logging.info(f"Starting Stage 3: Email Outreach for {len(rows)} businesses. (Dry Run: {dry_run}{limit_str})")
     
     emails_sent = 0
     # 3. Process each lead and send personalized emails
@@ -93,6 +97,23 @@ async def run_email_outreach(filepath, config, dry_run=False):
         # Skip leads that do not have an extracted email, or have already received an email
         if not email or sent_at:
             continue
+            
+        # Stop if limit is reached
+        if limit is not None and emails_sent >= limit:
+            logging.info(f"Reached sending limit of {limit} email(s). Stopping outreach.")
+            break
+
+        # Delay between emails to simulate human timing (only if not the first email sent in this execution)
+        if emails_sent > 0:
+            delay_config = config.get('email_outreach.delay_between_emails', {})
+            min_delay = delay_config.get('min', 5.0)
+            max_delay = delay_config.get('max', 15.0)
+            sleep_time = random.uniform(min_delay, max_delay)
+            if dry_run:
+                logging.info(f"[DRY RUN] Would delay for {sleep_time:.2f} seconds before next email.")
+            else:
+                logging.info(f"Sleeping for {sleep_time:.2f} seconds to simulate human timing...")
+                await asyncio.sleep(sleep_time)
             
         business_name = row.get('business_name', '')
         query = row.get('search_query', '')
@@ -115,6 +136,7 @@ async def run_email_outreach(filepath, config, dry_run=False):
         if dry_run:
             logging.info(f"[DRY RUN] Would send email to: {email} using template '{template_filename}'")
             logging.info(f"[DRY RUN] Subject: {subject}")
+            emails_sent += 1
         else:
             try:
                 # Prepare payload parameters for Resend API

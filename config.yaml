@@ -112,3 +112,8 @@ email_outreach:
   # Global email settings for all businesses
   subject: "Campaña informativa LCA"
   template_filename: "template.html"
+
+  # Delays (in seconds) between sending emails to simulate human timing
+  delay_between_emails:
+    min: 5.0
+    max: 15.0

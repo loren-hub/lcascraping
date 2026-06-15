@@ -37,6 +37,11 @@ async def main_async():
         action='store_true', 
         help='Simulate template loading and matching without sending real emails or writing to file'
     )
+    parser.add_argument(
+        '--limit', '-l',
+        type=int,
+        help='Maximum number of emails to send in this execution'
+    )
     args = parser.parse_args()
     
     # Load configuration
@@ -47,7 +52,7 @@ async def main_async():
     filepath = args.output or config.get('output.filename', 'results.csv')
     
     # Dispatch email outreach
-    await run_email_outreach(filepath, config, dry_run=args.dry_run)
+    await run_email_outreach(filepath, config, dry_run=args.dry_run, limit=args.limit)
 
 def main():
     try:
