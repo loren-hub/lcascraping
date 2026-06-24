@@ -27,15 +27,28 @@
         }
 
         /* ─── HEADER ──────────────────────────────── */
-        /* IMAGE SPOT 1 → Company logo (white/transparent PNG, ~140×40px)
-           Replace the text block below with:
-           <img src="logo-lca-white.png" alt="LCA Technology Solutions" height="38">  */
         .header {
             background-color: #0f2229;
             padding: 22px 36px;
             display: flex;
             align-items: center;
             gap: 14px;
+        }
+
+        .logo-lockup {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .logo-lockup .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-lockup .brand-link {
+            text-decoration: none;
         }
 
         .logo-lockup .brand-name {
@@ -54,11 +67,6 @@
         }
 
         /* ─── HERO ────────────────────────────────── */
-        /* IMAGE SPOT 2 → Hero illustration (isometric shield / workspace art)
-           Recommended: ~560×200px, transparent background, teal palette.
-           Great free sources: unDraw (undraw.co), Storyset (storyset.com)
-           Insert as: <img src="hero-illustration.png" alt="" style="display:block; width:100%;"> 
-           right below the opening <div class="hero"> tag, above .hero-inner.           */
         .hero {
             background: linear-gradient(160deg, #003d3d 0%, #005f5f 60%, #007070 100%);
             padding: 48px 40px 44px;
@@ -118,7 +126,7 @@
             margin-bottom: 28px;
         }
 
-        /* Insight card — expert framing, not a warning box */
+        /* Insight card */
         .insight-card {
             background: #f2fbfb;
             border-left: 3px solid #00a3a3;
@@ -303,133 +311,98 @@
             text-transform: uppercase;
             margin: 0 12px;
         }
-
-        .footer-unsub {
-            margin-top: 16px;
-            font-size: 10px;
-            color: #2d5060;
-        }
-
-        .footer-unsub a {
-            color: #2d5060;
-            text-decoration: underline;
-        }
     </style>
 </head>
 
 <body>
     <div class="wrapper">
 
-        <!-- ══ HEADER ══════════════════════════════════════════════════
-             IMAGE 1 · Logo
-             — Replace the .logo-lockup block with your logo:-->
-        <img src="https://raw.githubusercontent.com/loren-hub/lcascraping/refs/heads/main/images/image.png?token=GHSAT0AAAAAADWXMLN3Z2AI7NC3PZS4DPQC2R34AEQ"
-            alt="LCA Technology Solutions" height="40">
-        <!-- — Use a white or transparent PNG. Max height: 40px.
-        ════════════════════════════════════════════════════════════════ -->
         <div class="header">
             <div class="logo-lockup">
-                <div class="brand-name">LCA Technology</div>
-                <div class="brand-tagline">Ciberseguridad · IT · Continuidad</div>
+                <a href="https://lcatechnologysolutions.com" class="brand-link" target="_blank" rel="noopener">
+                    <div class="brand-text">
+                        <div class="brand-name">LCA Technology</div>
+                        <div class="brand-tagline">Ciberseguridad · IT · Continuidad</div>
+                    </div>
+                </a>
             </div>
         </div>
 
-        <!-- ══ HERO ════════════════════════════════════════════════════
-             IMAGE 2 · Hero illustration
-             — Recommended: abstract isometric security/shield/workspace art
-             — Format: PNG/SVG with transparent background, ~560×180px
-             — Palette: teal/dark teal to blend with the gradient bg
-             — Great free sources: undraw.co · storyset.com · humaaans.com
-             — Paste an <img> tag immediately after <div class="hero">:-->
-        <img src="https://raw.githubusercontent.com/loren-hub/lcascraping/refs/heads/main/images/hero.png?token=GHSAT0AAAAAADWXMLN3QL3TM6PSSQW4USFS2R34ABA"
-            alt="" style="display:block; width:100%; max-width:560px;
-                           margin: 0 auto 32px; border-radius:6px;">
         <div class="hero">
             <div class="hero-eyebrow">Seguridad digital para pymes</div>
             <div class="hero-headline">Tu empresa merece la misma<br>protección que las grandes</div>
-            <div class="hero-sub">Soluciones de ciberseguridad diseñadas para el tamaño, el presupuesto y la realidad
-                operativa de las pymes españolas.</div>
+            <div class="hero-sub">Soluciones de ciberseguridad diseñadas para el tamaño de las pymes españolas.</div>
         </div>
 
-        <!-- ══ BODY ══════════════════════════════════════════════════ -->
         <div class="body">
 
             <p class="greeting">Hola, <strong>{{business_name}}</strong></p>
             <p class="intro-text">
-                Los ataques que antes se dirigían a grandes corporaciones apuntan ahora a pymes como la tuya. Son
-                objetivos más accesibles, con menos capas de defensa, y cada vez más fáciles de explotar gracias a la
-                IA. No es alarmismo: es lo que vemos cada semana en nuestro trabajo.
+                Nos dirigimos a ustedes con el fin de informarles de que estamos viendo un repunte en casos de delitos
+                informáticos con origen en la IA. No es alarmismo, es lo que vemos cada semana en nuestro trabajo.
             </p>
 
-            <!-- Insight card: market data, consultative tone -->
             <div class="insight-card">
                 <div class="insight-label">Dato del sector · INCIBE 2024</div>
                 <div class="insight-text">
-                    Los incidentes de seguridad en pymes españolas crecieron un <strong>26% el último año</strong>. La
-                    mayoría no fueron fallos técnicos: fueron ataques diseñados específicamente para paralizar negocios
-                    pequeños.
+                    Los incidentes de seguridad en pymes españolas crecieron un <strong>26% el último año</strong>.
+                    Fueron ataques diseñados específicamente para paralizar negocios pequeños.
                 </div>
             </div>
 
-            <!-- Service pillars -->
             <div class="section-title">Cómo trabajamos</div>
             <div class="pillars">
                 <div class="pillar">
                     <div class="pillar-icon">🔍</div>
                     <div>
                         <div class="pillar-title">Monitorización continua</div>
-                        <div class="pillar-desc">Detectamos amenazas antes de que afecten a tu operativa, sin que
-                            necesites un equipo IT interno.</div>
+                        <div class="pillar-desc">Detectamos las amenazas sin que necesites un equipo IT interno.</div>
                     </div>
                 </div>
                 <div class="pillar">
                     <div class="pillar-icon">🔒</div>
                     <div>
                         <div class="pillar-title">Copias de seguridad aisladas</div>
-                        <div class="pillar-desc">Backups separados del sistema principal. Recuperación garantizada
-                            incluso ante un ransomware avanzado.</div>
+                        <div class="pillar-desc">Backups separados del sistema principal. Recuperación ante un
+                            ransomware avanzado.</div>
                     </div>
                 </div>
                 <div class="pillar">
                     <div class="pillar-icon">👥</div>
                     <div>
                         <div class="pillar-title">Formación para tu equipo</div>
-                        <div class="pillar-desc">La mayoría de los incidentes empiezan con un clic. Enseñamos a tu
-                            plantilla a reconocer los engaños antes de que ocurran.</div>
+                        <div class="pillar-desc">Enseñamos a tu plantilla a reconocer los engaños antes de que ocurran.
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Stats: positioned as intelligence, not fear -->
             <div class="section-title">El contexto que necesitas saber</div>
             <div class="stats-row">
                 <div class="stat-block">
                     <span class="stat-num">+26%</span>
-                    <span class="stat-label">incidentes en pymes<br>españolas (INCIBE)</span>
+                    <span class="stat-label">incidentes en pymes<br>españolas (<a
+                            href="https://www.incibe.es/incibe/sala-de-prensa/incibe-presenta-su-balance-de-ciberseguridad-2024-con-mas-de-97000-incidentes"
+                            target="_blank" rel="noopener">INCIBE</a>)</span>
                 </div>
                 <div class="stat-block">
                     <span class="stat-num">72h</span>
                     <span class="stat-label">plazo legal RGPD para<br>notificar una brecha</span>
                 </div>
                 <div class="stat-block">
-                    <span class="stat-num">150K€</span>
+                    <span class="stat-num">150.000€</span>
                     <span class="stat-label">coste medio estimado<br>de un ataque ransomware</span>
                 </div>
             </div>
 
-            <!-- CTA zone -->
             <div class="cta-zone">
-                <div class="cta-headline">¿Sabes cómo está protegido tu negocio ahora mismo?</div>
-                <div class="cta-sub">Sin permanencias. Sin jerga técnica. Solo una conversación.</div>
-                <a href="https://lcatechnologysolutions.com/#contacto" class="cta-button">Solicitar una consulta
-                    gratuita</a>
+                <div class="cta-headline">¿Quieres saber cómo de protegido estás?</div>
+                <div class="cta-sub">Sin jerga técnica. Solo una conversación.</div>
+                <a href="https://lcatechnologysolutions.com/#contacto" class="cta-button">Solicitar una consulta</a>
             </div>
 
         </div>
 
-        <!-- ══ FOOTER ═════════════════════════════════════════════════
-             No image needed here — keeping it clean builds trust.
-        ════════════════════════════════════════════════════════════════ -->
         <div class="footer">
             <p class="footer-text">
                 ¿Tienes alguna pregunta? Escríbenos a
@@ -442,10 +415,6 @@
                 <span style="color:#1e3d49">|</span>
                 <a href="https://www.instagram.com/lca.technology.solutions/" class="social-link" target="_blank"
                     rel="noopener">Instagram</a>
-            </div>
-            <div class="footer-unsub">
-                Recibiste este correo porque mostraste interés en servicios de seguridad IT.<br>
-                <a href="#">Cancelar suscripción</a>
             </div>
         </div>
 
