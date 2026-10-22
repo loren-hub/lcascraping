@@ -117,3 +117,21 @@ email_outreach:
   delay_between_emails:
     min: 5.0
     max: 15.0
+
+# --- HAVE I BEEN PWNED (HIBP) BREACH AUDIT ---
+hibp:
+  base_url: "https://haveibeenpwned.com"
+  
+  # Headless mode for HIBP: false is recommended to resolve Cloudflare Turnstile challenges
+  headless: false
+  
+  # Persistent session cookies and storage state to preserve Turnstile passes
+  storage_state_file: "hibp_state.json"
+  
+  # Timeouts (in seconds)
+  turnstile_timeout: 25.0
+  result_timeout: 25.0
+  
+  # Defensive delays (in seconds) between checking each email to prevent IP bans
+  delay_min_seconds: 120.0
+  delay_max_seconds: 300.0

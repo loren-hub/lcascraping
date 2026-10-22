@@ -78,12 +78,19 @@ def sanitize_file(input_filepath, output_filepath=None):
     name_blocklist = [kw.lower() for kw in config.get('filtering.franchise_blocklist', [])]
     domain_blocklist = [d.lower() for d in config.get('filtering.domain_blocklist', [])]
     
+    BASE_FIELDNAMES = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at', 'email_sent_at']
     rows = []
-    expected_fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at', 'email_sent_at']
+    fieldnames = list(BASE_FIELDNAMES)
     
     try:
         with open(input_filepath, 'r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
+            if reader.fieldnames:
+                fieldnames = list(reader.fieldnames)
+                for b in BASE_FIELDNAMES:
+                    if b not in fieldnames:
+                        fieldnames.append(b)
+
             for row in reader:
                 # Skip duplicate headers if they accidentally got written
                 if row.get('business_name') == 'business_name':
@@ -106,10 +113,10 @@ def sanitize_file(input_filepath, output_filepath=None):
     cleaned_chars = 0
     
     for row in rows:
-        # 1. Clean odd characters from every cell
+        # 1. Clean odd characters from every cell preserving all columns
         cleaned_row = {}
         had_char_change = False
-        for k in expected_fieldnames:
+        for k in fieldnames:
             orig = row.get(k, '')
             cleaned = clean_text(orig)
             if cleaned != orig:
@@ -167,16 +174,23 @@ def sanitize_file(input_filepath, output_filepath=None):
     logger.info(f"  - Franchises pruned: {dropped_franchises}")
     logger.info(f"  - Final clean leads: {len(sanitized_rows)}")
     
-    # Save clean data back to CSV
+    # Save clean data back to CSV atomically
+    temp_filepath = f"{output_filepath}.tmp"
     try:
-        with open(output_filepath, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(f, fieldnames=expected_fieldnames)
+        with open(temp_filepath, 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
             writer.writeheader()
             writer.writerows(sanitized_rows)
+        os.replace(temp_filepath, output_filepath)
         logger.info(f"Sanitized results successfully written to '{output_filepath}'")
         return True
     except Exception as e:
         logger.error(f"Failed to write sanitized CSV '{output_filepath}': {e}", exc_info=True)
+        if os.path.exists(temp_filepath):
+            try:
+                os.remove(temp_filepath)
+            except OSError:
+                pass
         return False
 
 def main():

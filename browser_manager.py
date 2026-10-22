@@ -1,3 +1,4 @@
+import os
 from playwright.async_api import async_playwright
 from anti_detection import get_random_user_agent
 
@@ -8,9 +9,10 @@ class BrowserManager:
         self.browser = None
         self.context = None
         
-    async def start(self):
+    async def start(self, headless=None):
         self.playwright = await async_playwright().start()
-        headless = self.config.get('browser.headless', False)
+        if headless is None:
+            headless = self.config.get('browser.headless', False)
         
         # Launch with stealth: --disable-blink-features=AutomationControlled
         args = [
@@ -24,21 +26,25 @@ class BrowserManager:
             args=args
         )
         
-    async def create_page(self):
+    async def create_page(self, storage_state=None, headless=None):
         if not self.browser:
-            await self.start()
+            await self.start(headless=headless)
             
         viewport = self.config.get('browser.viewport', {'width': 1280, 'height': 900})
         locale = self.config.get('browser.locale', 'en-US')
         timezone = self.config.get('browser.timezone', 'America/New_York')
         user_agent = get_random_user_agent()
         
-        self.context = await self.browser.new_context(
-            viewport=viewport,
-            locale=locale,
-            timezone_id=timezone,
-            user_agent=user_agent
-        )
+        context_args = {
+            'viewport': viewport,
+            'locale': locale,
+            'timezone_id': timezone,
+            'user_agent': user_agent
+        }
+        if storage_state and os.path.isfile(storage_state):
+            context_args['storage_state'] = storage_state
+            
+        self.context = await self.browser.new_context(**context_args)
         
         page = await self.context.new_page()
         if self.config.get('anti_detection.use_stealth', True):

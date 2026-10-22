@@ -31,6 +31,41 @@ def load_html_template(template_name):
             
     return None
 
+BASE_FIELDNAMES = [
+    'business_name',
+    'business_email',
+    'phone',
+    'website',
+    'address',
+    'search_query',
+    'scraped_at',
+    'email_sent_at'
+]
+
+
+def save_leads_atomic(filepath, fieldnames, rows):
+    """
+    Persists updated lead rows to CSV atomically using a temporary file
+    and atomic replacement, safeguarding against corruption upon interruption.
+    """
+    temp_filepath = f"{filepath}.tmp"
+    try:
+        with open(temp_filepath, 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
+            writer.writeheader()
+            writer.writerows(rows)
+        os.replace(temp_filepath, filepath)
+        return True
+    except Exception as e:
+        logging.error(f"Error saving incremental progress to '{filepath}': {e}", exc_info=True)
+        if os.path.exists(temp_filepath):
+            try:
+                os.remove(temp_filepath)
+            except OSError:
+                pass
+        return False
+
+
 async def run_email_outreach(filepath, config, dry_run=False, limit=None):
     """
     Orchestrates Stage 3: Email Outreach.
@@ -41,7 +76,7 @@ async def run_email_outreach(filepath, config, dry_run=False, limit=None):
     (e.g., business name), and sends the email via the Resend API.
     
     It maintains idempotency by recording the timestamp ('email_sent_at') in the CSV file
-    only when emails are successfully dispatched in live mode.
+    incrementally and atomically when emails are successfully dispatched in live mode.
     
     Args:
         filepath (str): Path to the CSV file containing the scraped leads.
@@ -63,26 +98,33 @@ async def run_email_outreach(filepath, config, dry_run=False, limit=None):
         logging.error("email_outreach.sender_email is not configured in config.yaml.")
         return
 
-    # 2. Load and parse the leads CSV file
+    # 2. Load and parse the leads CSV file preserving all existing headers dynamically
+    if not os.path.isfile(filepath):
+        logging.error(f"Could not find lead file at {filepath}.")
+        return
+
+    rows = []
+    fieldnames = list(BASE_FIELDNAMES)
     try:
         with open(filepath, 'r', encoding='utf-8-sig') as f:
-            # Expected headers matching the schema from previous stages
-            expected_fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at', 'email_sent_at']
-            reader = csv.DictReader(f, fieldnames=expected_fieldnames)
-            
-            rows = []
+            reader = csv.DictReader(f)
+            if reader.fieldnames:
+                fieldnames = list(reader.fieldnames)
+                for b in BASE_FIELDNAMES:
+                    if b not in fieldnames:
+                        fieldnames.append(b)
+
             for row in reader:
-                # Skip the CSV header row if it is duplicated or read as data
+                # Skip duplicate header line if accidentally present
                 if row.get('business_name') == 'business_name':
                     continue
-                # Ensure all dictionary keys are populated to avoid KeyErrors
-                for key in expected_fieldnames:
-                    if row.get(key) is None:
-                        row[key] = ''
-                rows.append(row)
-                
-    except FileNotFoundError:
-        logging.error(f"Could not find lead file at {filepath}.")
+                # Ensure all fieldnames exist in each row dict
+                for col in fieldnames:
+                    if col not in row or row[col] is None:
+                        row[col] = ''
+                rows.append(dict(row))
+    except Exception as e:
+        logging.error(f"Failed to read CSV '{filepath}': {e}", exc_info=True)
         return
 
     limit_str = f", Limit: {limit}" if limit is not None else ""
@@ -116,7 +158,6 @@ async def run_email_outreach(filepath, config, dry_run=False, limit=None):
                 await asyncio.sleep(sleep_time)
             
         business_name = row.get('business_name', '')
-        query = row.get('search_query', '')
         
         # Retrieve the global template configuration
         template_filename = config.get('email_outreach.template_filename', 'template.html')
@@ -129,7 +170,6 @@ async def run_email_outreach(filepath, config, dry_run=False, limit=None):
             continue
             
         # Personalize template by replacing template variables
-        # Note: Feel free to expand variable injections here (e.g. {{website}}, {{phone}})
         html_content = html_content.replace('{{business_name}}', business_name)
         
         # 4. Handle sending behavior based on Dry Run toggle
@@ -151,19 +191,12 @@ async def run_email_outreach(filepath, config, dry_run=False, limit=None):
                 response = resend.Emails.send(params)
                 logging.info(f"--> Sent email to {email}: {response}")
                 
-                # Mark current timestamp to prevent duplicate sending on rerun
+                # Mark current timestamp and persist immediately to prevent duplicate sending
                 row['email_sent_at'] = datetime.now().isoformat()
                 emails_sent += 1
+                save_leads_atomic(filepath, fieldnames, rows)
             except Exception as e:
                 logging.error(f"Failed to send email to {email}: {e}")
 
-    # 5. Persist progress: Save updated rows back to CSV only if live emails were sent
-    if not dry_run and emails_sent > 0:
-        with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(f, fieldnames=expected_fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
-            
-        logging.info(f"Done! Pipeline fully completed. Updated results saved to {filepath}")
-    else:
-        logging.info(f"Finished email outreach. Emails sent: {emails_sent}")
+    logging.info(f"Finished email outreach. Emails sent: {emails_sent}")
+

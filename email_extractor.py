@@ -20,14 +20,14 @@ def _load_config():
     import os
     config = {}
     try:
-        with open('config.yaml', 'r') as f:
+        with open('config.yaml', 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f) or {}
     except Exception:
         pass
 
     try:
         if os.path.exists('blocklist.yaml'):
-            with open('blocklist.yaml', 'r') as f:
+            with open('blocklist.yaml', 'r', encoding='utf-8') as f:
                 blocklist = yaml.safe_load(f) or {}
                 if isinstance(blocklist, dict):
                     if 'filtering' not in config:
@@ -169,7 +169,41 @@ async def get_email_for_website(context, url, render_wait=1.0, fake_patterns=Non
         
     return email_found
 
+BASE_FIELDNAMES = [
+    'business_name',
+    'business_email',
+    'phone',
+    'website',
+    'address',
+    'search_query',
+    'scraped_at',
+    'email_sent_at'
+]
+
+
+def _save_leads_atomic(filepath, fieldnames, rows):
+    """Saves leads to a CSV file atomically via a temporary file."""
+    import os
+    temp_filepath = f"{filepath}.tmp"
+    try:
+        with open(temp_filepath, 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
+            writer.writeheader()
+            writer.writerows(rows)
+        os.replace(temp_filepath, filepath)
+        return True
+    except Exception as e:
+        logging.warning(f"Error saving progress to {filepath}: {e}")
+        if os.path.exists(temp_filepath):
+            try:
+                os.remove(temp_filepath)
+            except OSError:
+                pass
+        return False
+
+
 async def run_email_enrichment(filepath):
+    import os
     config = _load_config()
     fake_patterns = _get_fake_email_patterns(config)
     domain_blocklist = _get_domain_blocklist(config)
@@ -177,19 +211,25 @@ async def run_email_enrichment(filepath):
     render_wait = config.get('delays', {}).get('email_page_render_wait', 1.0)
 
     rows = []
+    fieldnames = list(BASE_FIELDNAMES)
     try:
         with open(filepath, 'r', encoding='utf-8-sig') as f:
-            # New fieldnames match exactly what is in data_store.py
-            expected_fieldnames = ['business_name', 'business_email', 'phone', 'website', 'address', 'search_query', 'scraped_at', 'email_sent_at']
-            reader = csv.DictReader(f, fieldnames=expected_fieldnames)
+            reader = csv.DictReader(f)
+            if reader.fieldnames:
+                fieldnames = list(reader.fieldnames)
+                for b in BASE_FIELDNAMES:
+                    if b not in fieldnames:
+                        fieldnames.append(b)
             
             for row in reader:
                 # Skip header if it exists
                 if row.get('business_name') == 'business_name':
                     continue
-                rows.append(row)
-                
-            fieldnames = expected_fieldnames
+                # Ensure all fieldnames exist in dict
+                for col in fieldnames:
+                    if col not in row or row[col] is None:
+                        row[col] = ''
+                rows.append(dict(row))
     except FileNotFoundError:
         logging.error(f"Could not find {filepath}. Please ensure Stage 1 ran successfully.")
         return
@@ -231,13 +271,7 @@ async def run_email_enrichment(filepath):
                 
             # Write progress back to results file immediately if modified
             if modified:
-                try:
-                    with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
-                        writer = csv.DictWriter(f, fieldnames=fieldnames)
-                        writer.writeheader()
-                        writer.writerows(rows)
-                except Exception as e:
-                    logging.warning(f"Error saving live progress to {filepath}: {e}")
+                _save_leads_atomic(filepath, fieldnames, rows)
                 
         await browser.close()
     
@@ -257,11 +291,8 @@ async def run_email_enrichment(filepath):
         if removed > 0:
             logging.info(f"Removed {removed} rows with no valid email ({len(rows)} remaining).")
         
-    # Write the enriched data back to the same CSV file
-    with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-        
+    # Write the enriched data back to the CSV file atomically
+    _save_leads_atomic(filepath, fieldnames, rows)
     logging.info(f"Done! Pipeline fully completed. Enriched results saved to {filepath}")
+
 
